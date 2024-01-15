@@ -4,9 +4,10 @@ const VectorSchema = new mongoose.Schema({
   url: {
     type: String,
     required: true,
+    unique: true,
   },
   text: {
-    type: [String],
+    type: String,
     required: true,
   },
   embedding: {

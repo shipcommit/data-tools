@@ -1,6 +1,9 @@
 import Fastify from 'fastify';
 import { CohereClient } from 'cohere-ai';
 import 'dotenv/config';
+import mongoose from 'mongoose';
+
+import Vector from './models/Vector.cjs';
 
 const cohereApiKey = process.env.COHERE_API_KEY;
 
@@ -12,6 +15,24 @@ const cohere = new CohereClient({
 const fastify = Fastify({
   logger: true,
 });
+
+// Connect to MongoDB
+const connectDb = async () => {
+  try {
+    await mongoose.connect(process.env.MONGO_URI, {
+      dbName: 'test',
+    });
+
+    console.log('MongoDB Connected...');
+  } catch (err) {
+    console.error(err.message);
+
+    // Exit process with failure
+    process.exit(1);
+  }
+};
+
+connectDb();
 
 // Test route
 fastify.get('/', function (request, reply) {
@@ -42,6 +63,7 @@ fastify.post('/vector/embed-financial data', async function (request, reply) {
       Trenger man en pakke? ${entry.trenger_ikke_pakke ? 'Nei' : 'Ja'}
       Må man være pensjonist? ${entry.pensjonist ? 'Ja' : 'Nei'}
         Maks sparebeløp: ${entry.maks_belop ? entry.maks_belop : 'Nei'}
+        Minimum alder: ${entry.in_alder ? entry.in_alder : ''}
         Maks alder: ${entry.maks_alder ? entry.maks_alder : ''}
         Frie uttak: ${entry.frie_uttak ? entry.frie_uttak : ''}`;
 
@@ -57,42 +79,32 @@ fastify.post('/vector/embed-financial data', async function (request, reply) {
 
       const productUrl = `finansportalen.no/bank/bankinnskudd/product/${productId}`;
 
-      console.log('productUrl:', productUrl);
-      console.log('chunk:', chunk);
-      console.log('documentRes.embeddings[0]:', documentRes.embeddings[0]);
-    }
+      // console.log('productUrl:', productUrl);
+      // console.log('chunk:', chunk);
+      // console.log('documentRes.embeddings[0]:', documentRes.embeddings[0]);
 
-    return;
-
-    // Save vector embeddings in database
-    for (const position in vectorArray) {
+      // Save vector embeddings in database
       // Check if the url already has been added
       const checkVector = await Vector.find({
-        url: url,
-        text: splitsArray[position],
+        url: productUrl,
       });
 
-      // console.log('splitsArray[position]:', splitsArray[position]);
-      // console.log('vectorArray[position]:', vectorArray[position]);
-
       if (checkVector.length > 0) {
-        console.log('Vector already exists:', splitsArray[position]);
+        console.log('Vector already exists:', productUrl);
 
         continue;
       } else {
         const newVector = Vector({
-          url: url,
-          text: splitsArray[position],
-          embedding: vectorArray[position],
+          url: productUrl,
+          text: chunk,
+          embedding: documentRes.embeddings[0],
         });
 
         await newVector.save();
 
-        console.log('Vector embedding saved:', splitsArray[position]);
+        console.log('Vector embedding saved:', productUrl);
       }
     }
-
-    console.log('Done with vector embeddings');
   } catch (err) {
     console.log(err);
   }

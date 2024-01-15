@@ -13,6 +13,7 @@
     "cohere-ai": "^7.6.2",
     "dotenv": "^16.3.1",
     "fastify": "^4.25.2",
+    "mongoose": "^8.0.4",
     "nodemon": "^3.0.2"
   },
   "type": "module"
