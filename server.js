@@ -79,10 +79,6 @@ fastify.post('/vector/embed-financial data', async function (request, reply) {
 
       const productUrl = `finansportalen.no/bank/bankinnskudd/product/${productId}`;
 
-      // console.log('productUrl:', productUrl);
-      // console.log('chunk:', chunk);
-      // console.log('documentRes.embeddings[0]:', documentRes.embeddings[0]);
-
       // Save vector embeddings in database
       // Check if the url already has been added
       const checkVector = await Vector.find({
@@ -107,6 +103,43 @@ fastify.post('/vector/embed-financial data', async function (request, reply) {
     }
 
     console.log('Done creating vector embeddings');
+  } catch (err) {
+    console.log(err);
+  }
+});
+
+// [Route] - /vector-search
+// [Description] - Search with vector query
+fastify.get('/vector-search', async function (request, reply) {
+  try {
+    // Get query embedding
+    const query = request.query.query;
+
+    const documentRes = await cohere.embed({
+      texts: [query],
+      model: 'embed-english-v3.0',
+      inputType: 'search_query',
+    });
+
+    const embedding = documentRes.embeddings[0];
+
+    // console.log('embedding:', embedding);
+
+    // Find documents
+    const documents = await Vector.aggregate([
+      {
+        $vectorSearch: {
+          queryVector: embedding,
+          path: 'embedding',
+          numCandidates: 100,
+          limit: 5,
+          index: 'vector_index',
+        },
+      },
+    ]);
+
+    console.log('documents:', documents);
+    console.log('documents.length:', documents.length);
   } catch (err) {
     console.log(err);
   }
