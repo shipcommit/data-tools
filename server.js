@@ -1,4 +1,12 @@
 import Fastify from 'fastify';
+import { CohereClient } from 'cohere-ai';
+import 'dotenv/config';
+
+const cohereApiKey = process.env.COHERE_API_KEY;
+
+const cohere = new CohereClient({
+  token: cohereApiKey,
+});
 
 // Initiate server
 const fastify = Fastify({
@@ -14,12 +22,16 @@ fastify.get('/', function (request, reply) {
 // [Description] - Download and convert article text do vector embeddings
 fastify.post('/vector/embed-financial data', async function (request, reply) {
   try {
+    console.log('Converting data to vector embeddings...');
+
     // This input requires raw JSON
     const json = request.body.json;
 
     // Create chunks
+    const chunksArray = [];
+
     for (const offer of json.feed.entry) {
-      let chunk = `Produkt tittel: ${offer.title ? offer.title : ''}
+      const chunk = `Produkt tittel: ${offer.title ? offer.title : ''}
       Bank: ${offer.leverandor_tekst ? offer.leverandor_tekst : ''}
       Hvor tilbudet gjelder: ${
         offer.markedsomraade ? offer.markedsomraade : ''
@@ -34,34 +46,15 @@ fastify.post('/vector/embed-financial data', async function (request, reply) {
         Maks alder: ${offer.maks_alder ? offer.maks_alder : ''}
         Frie uttak: ${offer.frie_uttak ? offer.frie_uttak : ''}`;
 
-      console.log('chunk:', chunk);
+      chunksArray.push(chunk);
     }
 
-    // console.log('json.feed.entries:', json.feed);
-
-    return;
-
-    const splitter = new RecursiveCharacterTextSplitter({
-      chunkSize: 100,
-      chunkOverlap: 20,
-    });
-
-    const allSplits = await splitter.createDocuments([scrapedArticle]);
-
-    const splitsArray = [];
-
-    for (const obj of allSplits) {
-      splitsArray.push(obj.pageContent);
-    }
-
-    console.log('splitsArray:', splitsArray);
-
-    // Create batches
+    // Create vector embeddings
     let batchArray = [];
     const vectorArray = [];
 
-    for (const array in splitsArray) {
-      batchArray.push(splitsArray[array]);
+    for (const array in chunksArray) {
+      batchArray.push(chunksArray[array]);
 
       if (batchArray.length === 96) {
         const documentRes = await cohere.embed({
@@ -90,9 +83,13 @@ fastify.post('/vector/embed-financial data', async function (request, reply) {
       }
     }
 
-    if (splitsArray.length !== vectorArray.length) {
+    if (chunksArray.length !== vectorArray.length) {
       throw 'All of the text has not been converted to vector embeddings';
     }
+
+    console.log('vectorArray:', vectorArray);
+
+    return;
 
     // Save vector embeddings in database
     for (const position in vectorArray) {
