@@ -28,66 +28,39 @@ fastify.post('/vector/embed-financial data', async function (request, reply) {
     const json = request.body.json;
 
     // Create chunks
-    const chunksArray = [];
 
-    for (const offer of json.feed.entry) {
-      const chunk = `Produkt tittel: ${offer.title ? offer.title : ''}
-      Bank: ${offer.leverandor_tekst ? offer.leverandor_tekst : ''}
+    for (const entry of json.feed.entry) {
+      const chunk = `Produkt tittel: ${entry.title ? entry.title : ''}
+      Bank: ${entry.leverandor_tekst ? entry.leverandor_tekst : ''}
       Hvor tilbudet gjelder: ${
-        offer.markedsomraade ? offer.markedsomraade : ''
-      } ${offer.markedsomraadeTekst ? offer.markedsomraadeTekst : ''}
+        entry.markedsomraade ? entry.markedsomraade : ''
+      } ${entry.markedsomraadeTekst ? entry.markedsomraadeTekst : ''}
       Spesielle betingelser: ${
-        offer.spesielle_betingelser ? offer.spesielle_betingelser : ''
+        entry.spesielle_betingelser ? entry.spesielle_betingelser : ''
       }
-      Må man være student? ${offer.student ? 'Ja' : 'Nei'}
-      Trenger man en pakke? ${offer.trenger_ikke_pakke ? 'Nei' : 'Ja'}
-      Må man være pensjonist? ${offer.pensjonist ? 'Ja' : 'Nei'}
-        Maks sparebeløp: ${offer.maks_belop ? offer.maks_belop : 'Nei'}
-        Maks alder: ${offer.maks_alder ? offer.maks_alder : ''}
-        Frie uttak: ${offer.frie_uttak ? offer.frie_uttak : ''}`;
+      Må man være student? ${entry.student ? 'Ja' : 'Nei'}
+      Trenger man en pakke? ${entry.trenger_ikke_pakke ? 'Nei' : 'Ja'}
+      Må man være pensjonist? ${entry.pensjonist ? 'Ja' : 'Nei'}
+        Maks sparebeløp: ${entry.maks_belop ? entry.maks_belop : 'Nei'}
+        Maks alder: ${entry.maks_alder ? entry.maks_alder : ''}
+        Frie uttak: ${entry.frie_uttak ? entry.frie_uttak : ''}`;
 
-      chunksArray.push(chunk);
-    }
-
-    // Create vector embeddings
-    let batchArray = [];
-    const vectorArray = [];
-
-    for (const array in chunksArray) {
-      batchArray.push(chunksArray[array]);
-
-      if (batchArray.length === 96) {
-        const documentRes = await cohere.embed({
-          texts: batchArray,
-          model: 'embed-english-v3.0',
-          inputType: 'search_document',
-        });
-
-        for (const embedding in documentRes.embeddings) {
-          vectorArray.push(documentRes.embeddings[embedding]);
-        }
-
-        batchArray = [];
-      }
-    }
-
-    if (batchArray.length > 0) {
+      // Create vector embeddings
       const documentRes = await cohere.embed({
-        texts: batchArray,
+        texts: [chunk],
         model: 'embed-english-v3.0',
         inputType: 'search_document',
       });
 
-      for (const embedding in documentRes.embeddings) {
-        vectorArray.push(documentRes.embeddings[embedding]);
-      }
-    }
+      const productIdArray = entry.id.split('/');
+      const productId = productIdArray[productIdArray.length - 1];
 
-    if (chunksArray.length !== vectorArray.length) {
-      throw 'All of the text has not been converted to vector embeddings';
-    }
+      const productUrl = `finansportalen.no/bank/bankinnskudd/product/${productId}`;
 
-    console.log('vectorArray:', vectorArray);
+      console.log('productUrl:', productUrl);
+      console.log('chunk:', chunk);
+      console.log('documentRes.embeddings[0]:', documentRes.embeddings[0]);
+    }
 
     return;
 
