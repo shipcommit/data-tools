@@ -105,6 +105,8 @@ fastify.post('/vector/embed-financial data', async function (request, reply) {
         console.log('Vector embedding saved:', productUrl);
       }
     }
+
+    console.log('Done creating vector embeddings');
   } catch (err) {
     console.log(err);
   }
