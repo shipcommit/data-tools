@@ -131,7 +131,7 @@ fastify.get('/vector-search', async function (request, reply) {
         $vectorSearch: {
           queryVector: embedding,
           path: 'embedding',
-          numCandidates: 100,
+          numCandidates: 500,
           limit: 5,
           index: 'vector_index',
         },
