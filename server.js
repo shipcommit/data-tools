@@ -17,20 +17,29 @@ fastify.post('/vector/embed-financial data', async function (request, reply) {
     // This input requires raw JSON
     const json = request.body.json;
 
-    console.log('json:', json);
+    // Create chunks
+    for (const offer of json.feed.entry) {
+      let chunk = `Produkt tittel: ${offer.title ? offer.title : ''}
+      Bank: ${offer.leverandor_tekst ? offer.leverandor_tekst : ''}
+      Hvor tilbudet gjelder: ${
+        offer.markedsomraade ? offer.markedsomraade : ''
+      } ${offer.markedsomraadeTekst ? offer.markedsomraadeTekst : ''}
+      Spesielle betingelser: ${
+        offer.spesielle_betingelser ? offer.spesielle_betingelser : ''
+      }
+      Må man være student? ${offer.student ? 'Ja' : 'Nei'}
+      Trenger man en pakke? ${offer.trenger_ikke_pakke ? 'Nei' : 'Ja'}
+      Må man være pensjonist? ${offer.pensjonist ? 'Ja' : 'Nei'}
+        Maks sparebeløp: ${offer.maks_belop ? offer.maks_belop : 'Nei'}
+        Maks alder: ${offer.maks_alder ? offer.maks_alder : ''}
+        Frie uttak: ${offer.frie_uttak ? offer.frie_uttak : ''}`;
+
+      console.log('chunk:', chunk);
+    }
+
+    // console.log('json.feed.entries:', json.feed);
+
     return;
-
-    if (stringArray.length < 1) {
-      throw 'Could not parse scraped article';
-    }
-
-    let scrapedArticle = '';
-
-    for (const string of stringArray) {
-      scrapedArticle += `${string}
-      
-            `;
-    }
 
     const splitter = new RecursiveCharacterTextSplitter({
       chunkSize: 100,
