@@ -51,6 +51,30 @@ fastify.post('/vector/embed-financial data', async function (request, reply) {
     // Create chunks
 
     for (const entry of json.feed.entry) {
+      // Find highest interest rate
+      let interest = [];
+
+      interest.push(entry.rentesats1);
+      interest.push(entry.rentesats2);
+      interest.push(entry.rentesats3);
+      interest.push(entry.rentesats4);
+      interest.push(entry.rentesats5);
+      interest.push(entry.rentesats6);
+
+      // Filter out strings
+      interest = interest.filter((value) => typeof value === 'number');
+
+      // Filter out 0 interest
+      interest = interest.filter((value) => value !== 0);
+
+      // Skip offers that don't have any interest
+      if (interest.length < 1) {
+        return;
+      }
+
+      // Return the highest interest if it exists
+      const highestInterest = Math.max(...interest);
+
       const chunk = `Produkt tittel: ${entry.title ? entry.title : ''}
       Bank: ${entry.leverandor_tekst ? entry.leverandor_tekst : ''}
       Hvor tilbudet gjelder: ${
@@ -62,15 +86,16 @@ fastify.post('/vector/embed-financial data', async function (request, reply) {
       Må man være student? ${entry.student ? 'Ja' : 'Nei'}
       Trenger man en pakke? ${entry.trenger_ikke_pakke ? 'Nei' : 'Ja'}
       Må man være pensjonist? ${entry.pensjonist ? 'Ja' : 'Nei'}
-        Maks sparebeløp: ${entry.maks_belop ? entry.maks_belop : 'Nei'}
-        Minimum alder: ${entry.in_alder ? entry.in_alder : ''}
-        Maks alder: ${entry.maks_alder ? entry.maks_alder : ''}
-        Frie uttak: ${entry.frie_uttak ? entry.frie_uttak : ''}`;
+      Maks sparebeløp: ${entry.maks_belop ? entry.maks_belop : 'Nei'}
+      Minimum alder: ${entry.in_alder ? entry.in_alder : ''}
+      Maks alder: ${entry.maks_alder ? entry.maks_alder : ''}
+      Frie uttak: ${entry.frie_uttak ? entry.frie_uttak : ''}
+      Rente: ${highestInterest ? highestInterest : ''}`;
 
       // Create vector embeddings
       const documentRes = await cohere.embed({
         texts: [chunk],
-        model: 'embed-english-v3.0',
+        model: 'embed-multilingual-v3.0',
         inputType: 'search_document',
       });
 
@@ -117,7 +142,7 @@ fastify.get('/vector-search', async function (request, reply) {
 
     const documentRes = await cohere.embed({
       texts: [query],
-      model: 'embed-english-v3.0',
+      model: 'embed-multilingual-v3.0',
       inputType: 'search_query',
     });
 
